@@ -1,0 +1,8 @@
+1、需求：基于lightning框架实现图片分类模型的训练与预测，现阶段想在Cpu上学习模型训练过程和代码规范的编写：
+2、手写数字数据集：
+训练集图片：/Users/cuijinlong/Documents/datasets/mnist/train
+训练集标签：/Users/cuijinlong/Documents/datasets/mnist/traintrain_labels.csv
+测试集：/Users/cuijinlong/Documents/datasets/mnist/test
+测试集标签：/Users/cuijinlong/Documents/datasets/mnist/test_labels.csv
+csv列表名：filename、label、split三列
+

@@ -68,7 +68,7 @@ class MNISTImageDataModule(pl.LightningDataModule):
     """PyTorch Lightning数据模块"""
 
     def __init__(self,
-                 data_dir: str = '/Users/cuijinlong/Documents/datasets/mnist',
+                 data_dir: str = '/Users/cuijinlong/Documents/datasets/mnist_custom',
                  batch_size: int = 64,
                  num_workers: int = 0,
                  validation_split: float = 0.2):
