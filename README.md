@@ -13,6 +13,3 @@ ls -la /usr/local/bin/ffmpeg
 sudo chmod +x /usr/local/bin/ffmpeg
 echo $PATH
 which ffmpeg
-
-sudo chown -R $(whoami) /Users/cuijinlong/Documents/dev_tools/ffmpeg
-sudo chmod +x /Users/cuijinlong/Documents/workspace_py/fastai_lm/ffmpeg
