@@ -1,7 +1,15 @@
-原始数据集的目录结构
+第一步：
+1、下载npz并转换PathMNIST数据集
+    |
+    -- 下载目录：/Users/cuijinlong/Documents/datasets/pathmnist
+2、模拟Excel数据
+    |
+    -- /Users/cuijinlong/Documents/datasets/pathmnist
+第二步：
+1、原始数据集的目录结构
 /Users/cuijinlong/Documents/datasets/pifubing
    |
-    --optional_image    # 样本数据
+    -- optional_image    # 样本数据
          |  # 不同分类图片文件夹
          -- /cate1
          -- /cate2
@@ -11,7 +19,7 @@
          |
          --data.xlsx  # 可选（可有可无）
 
-分割数据集的目录结构(无xlsx)
+2、分割数据集的目录结构(无xlsx)
 /Users/cuijinlong/Documents/datasets/pifubing
    |
     --output_dataset_basic
@@ -39,8 +47,7 @@
          --val_metadata.csv
          --dataset_info.txt
 
-
-分割数据集的目录结构(有xlsx)
+3、分割数据集的目录结构(有xlsx)
 /Users/cuijinlong/Documents/datasets/pifubing
    |
     --output_dataset_multimodal

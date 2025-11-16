@@ -316,7 +316,7 @@ class DatasetConfig:
 
     def __init__(self):
         # 基础路径配置 - 请根据实际情况修改这些路径
-        self.base_data_dir = "/Users/cuijinlong/Documents/datasets/pifubing"
+        self.base_data_dir = "/Users/cuijinlong/Documents/datasets/pathmnist"
         self.source_image_dir = f"{self.base_data_dir}/optional_image"
         self.output_dir = f"{self.base_data_dir}/output_dataset"
         self.excel_path = f"{self.base_data_dir}/optional_image/data.xlsx"
