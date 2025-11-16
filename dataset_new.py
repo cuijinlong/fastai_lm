@@ -78,6 +78,7 @@ class MedicalDatasetSplitter:
 
         # 读取Excel数据（如果提供）
         excel_data = None
+        bio_columns = []  # 存储生化指标列名
         if excel_path:
             if not Path(excel_path).exists():
                 warnings.warn(f"Excel文件 {excel_path} 不存在，将仅使用文件夹分类信息")
@@ -86,6 +87,14 @@ class MedicalDatasetSplitter:
                     excel_data = pd.read_excel(excel_path)
                     print(f"成功读取Excel文件，包含 {len(excel_data)} 行数据")
                     print(f"Excel列名: {list(excel_data.columns)}")
+
+                    # 获取生化指标列名（排除图片名和标签列）
+                    bio_columns = [col for col in excel_data.columns
+                                   if col not in [image_col, label_col] and label_col is not None]
+                    if label_col is None:
+                        bio_columns = [col for col in excel_data.columns if col != image_col]
+
+                    print(f"生化指标列: {bio_columns}")
                 except Exception as e:
                     warnings.warn(f"读取Excel文件失败: {e}，将仅使用文件夹分类信息")
                     excel_data = None
@@ -95,7 +104,8 @@ class MedicalDatasetSplitter:
             'total_images': 0,
             'class_distribution': {},
             'split_distribution': {'train': 0, 'val': 0, 'test': 0},
-            'excel_metadata_used': excel_data is not None
+            'excel_metadata_used': excel_data is not None,
+            'bio_columns_count': len(bio_columns)
         }
 
         # 存储所有文件的分割信息用于生成CSV
@@ -144,17 +154,20 @@ class MedicalDatasetSplitter:
 
             # 处理训练集文件
             train_info = self._process_files(train_files, train_dir / class_name,
-                                             class_name, copy_files, excel_data, image_col, label_col)
+                                             class_name, copy_files, excel_data,
+                                             image_col, label_col, bio_columns)
             all_files_info['train'].extend(train_info)
 
             # 处理验证集文件
             val_info = self._process_files(val_files, val_dir / class_name,
-                                           class_name, copy_files, excel_data, image_col, label_col)
+                                           class_name, copy_files, excel_data,
+                                           image_col, label_col, bio_columns)
             all_files_info['val'].extend(val_info)
 
             # 处理测试集文件
             test_info = self._process_files(test_files, test_dir / class_name,
-                                            class_name, copy_files, excel_data, image_col, label_col)
+                                            class_name, copy_files, excel_data,
+                                            image_col, label_col, bio_columns)
             all_files_info['test'].extend(test_info)
 
             # 更新统计
@@ -170,7 +183,8 @@ class MedicalDatasetSplitter:
 
         return stats
 
-    def _process_files(self, file_list, target_dir, class_name, copy_files, excel_data, image_col, label_col):
+    def _process_files(self, file_list, target_dir, class_name, copy_files,
+                       excel_data, image_col, label_col, bio_columns):
         """
         处理文件并返回文件信息
 
@@ -182,6 +196,7 @@ class MedicalDatasetSplitter:
             excel_data: Excel数据
             image_col: 图片列名
             label_col: 标签列名
+            bio_columns: 生化指标列名列表
 
         Returns:
             list: 文件信息列表
@@ -224,16 +239,15 @@ class MedicalDatasetSplitter:
                     if label_col and label_col in excel_data.columns:
                         file_info['label'] = row[label_col]
 
-                    # 添加所有其他列作为生化指标
-                    for col in excel_data.columns:
-                        if col not in [image_col, label_col]:
+                    # 添加所有生化指标列
+                    for col in bio_columns:
+                        if col in excel_data.columns:
                             file_info[col] = row[col]
                 else:
-                    # 如果没有匹配，标记缺失数据
+                    # 如果没有匹配，为所有生化指标列赋值为None
+                    for col in bio_columns:
+                        file_info[col] = None
                     file_info['excel_data_missing'] = True
-                    for col in excel_data.columns:
-                        if col not in [image_col, label_col]:
-                            file_info[col] = None
 
             files_info.append(file_info)
 
@@ -260,6 +274,7 @@ class MedicalDatasetSplitter:
                 csv_path = output_path / f'{split_name}_metadata.csv'
                 df.to_csv(csv_path, index=False, encoding='utf-8')
                 print(f"生成 {split_name} CSV文件: {csv_path}")
+                print(f"CSV文件包含 {len(df.columns)} 列: {list(df.columns)}")
 
     def create_dataset_info(self, output_dir, stats):
         """
@@ -276,7 +291,8 @@ class MedicalDatasetSplitter:
             f.write("=" * 50 + "\n\n")
 
             f.write(f"总图片数量: {stats['total_images']}\n")
-            f.write(f"使用Excel元数据: {'是' if stats['excel_metadata_used'] else '否'}\n\n")
+            f.write(f"使用Excel元数据: {'是' if stats['excel_metadata_used'] else '否'}\n")
+            f.write(f"生化指标列数: {stats['bio_columns_count']}\n\n")
 
             f.write("类别分布:\n")
             for class_name, count in stats['class_distribution'].items():
@@ -295,127 +311,32 @@ class MedicalDatasetSplitter:
             f.write(f"\n生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
 
-def create_sample_images():
-    """
-    创建模拟的医疗图像数据
-    生成三个文件夹(1,2,3)，每个文件夹包含一些模拟的医疗图像
-    混合使用JPG和PNG格式
-    """
-    base_dir = Path("sample_medical_images")
+class DatasetConfig:
+    """数据集配置类"""
 
-    # 创建三个类别文件夹
-    categories = ['1', '2', '3']
-    images_per_category = 30  # 每个类别生成30张图片
+    def __init__(self):
+        # 基础路径配置 - 请根据实际情况修改这些路径
+        self.base_data_dir = "/Users/cuijinlong/Documents/datasets/pifubing"
+        self.source_image_dir = f"{self.base_data_dir}/optional_image"
+        self.output_dir = f"{self.base_data_dir}/output_dataset"
+        self.excel_path = f"{self.base_data_dir}/optional_image/medical_data_sample.xlsx"
 
-    # 为每个类别生成图片
-    for category in categories:
-        category_dir = base_dir / category
-        category_dir.mkdir(parents=True, exist_ok=True)
+        # 数据集分割比例
+        self.train_ratio = 0.7
+        self.val_ratio = 0.15
+        self.test_ratio = 0.15
 
-        print(f"为类别 {category} 生成 {images_per_category} 张图片...")
-
-        for i in range(images_per_category):
-            # 创建一张模拟的医疗图像
-            img = Image.new('RGB', (256, 256), color=(random.randint(200, 255),
-                                                      random.randint(200, 255),
-                                                      random.randint(200, 255)))
-            draw = ImageDraw.Draw(img)
-
-            # 添加一些随机形状模拟医疗图像特征
-            for _ in range(random.randint(3, 8)):
-                x1, y1 = random.randint(0, 200), random.randint(0, 200)
-                x2, y2 = x1 + random.randint(20, 50), y1 + random.randint(20, 50)
-                color = (random.randint(0, 150), random.randint(0, 150), random.randint(0, 150))
-
-                if random.choice([True, False]):
-                    draw.ellipse([x1, y1, x2, y2], fill=color)
-                else:
-                    draw.rectangle([x1, y1, x2, y2], fill=color)
-
-            # 添加类别标签文本
-            draw.text((10, 10), f"Category {category}", fill=(0, 0, 0))
-
-            # 随机选择保存为JPG或PNG格式
-            filename = f"{category}_{i + 1:03d}"
-            if i % 3 == 0:  # 约1/3的图片保存为PNG
-                filename += ".png"
-                img.save(category_dir / filename)
-            else:  # 其他保存为JPG
-                filename += ".jpg"
-                # 对于JPG，使用高质量保存
-                img.save(category_dir / filename, "JPEG", quality=95)
-
-    print(f"模拟图像生成完成，保存在 {base_dir} 目录")
-
-    # 显示每个类别的文件类型统计
-    for category in categories:
-        category_dir = base_dir / category
-        jpg_count = len(list(category_dir.glob("*.jpg")))
-        png_count = len(list(category_dir.glob("*.png")))
-        print(f"类别 {category}: {jpg_count} 张JPG, {png_count} 张PNG")
-
-    return base_dir
+        # Excel配置
+        self.image_col = "image_name"
+        self.label_col = "diagnosis"  # 可选，如果使用Excel中的标签
 
 
-def create_sample_excel(image_dir):
-    """
-    创建模拟的Excel数据，包含生化指标
-    处理JPG和PNG格式的图片
-    """
-    # 收集所有生成的图片文件名（包括JPG和PNG）
-    all_images = []
-    for category in ['cate1', 'cate2', 'cate3']:
-        category_dir = Path(image_dir) / category
-
-        # 使用glob同时查找JPG和PNG文件
-        for img_file in category_dir.glob("*.*"):
-            if img_file.suffix.lower() in ['.jpg', '.jpeg', '.png']:
-                all_images.append(category + '@' + img_file.name)
-
-    # 为每张图片生成模拟的生化指标数据
-    data = []
-    for img_name in all_images:
-        # 从文件名提取类别
-        category = img_name.split('@')[0]
-        img_name = img_name.split('@')[1]
-
-        # 生成模拟的生化指标
-        row = {
-            'image_name': img_name,
-            'diagnosis': f"{category}",  # 与文件夹分类可能不同的标签
-            'patient_age': random.randint(20, 80),
-            'patient_gender': random.choice(['M', 'F']),
-            'wbc_count': round(random.uniform(4.0, 15.0), 1),  # 白细胞计数
-            'crp_level': round(random.uniform(0.5, 50.0), 1),  # C反应蛋白
-            'temperature': round(random.uniform(36.5, 39.5), 1),  # 体温
-            'blood_pressure_systolic': random.randint(100, 160),  # 收缩压
-            'blood_pressure_diastolic': random.randint(60, 100),  # 舒张压
-        }
-        data.append(row)
-
-    # 创建DataFrame并保存为Excel
-    df = pd.DataFrame(data)
-    excel_path = Path(image_dir) / "medical_data_sample.xlsx"
-    df.to_excel(excel_path, index=False)
-
-    print(f"模拟Excel数据生成完成，包含 {len(df)} 行数据")
-    print(f"Excel文件保存为: {excel_path}")
-
-    # 显示前几行数据
-    print("\nExcel数据样例:")
-    print(df.head())
-
-    # 显示文件格式分布
-    jpg_count = len([name for name in all_images if name.lower().endswith(('.jpg', '.jpeg'))])
-    png_count = len([name for name in all_images if name.lower().endswith('.png')])
-    print(f"\n图片格式分布: {jpg_count} 张JPG, {png_count} 张PNG")
-
-    return excel_path
-
-
-def demo_without_excel():
+def demo_without_excel(config):
     """
     演示无Excel数据的情况
+
+    Args:
+        config: 数据集配置对象
     """
     print("\n" + "=" * 50)
     print("演示: 无Excel数据的情况")
@@ -426,31 +347,38 @@ def demo_without_excel():
 
     # 分割数据集（不使用Excel）
     stats = splitter.split_dataset(
-        source_dir="/Users/cuijinlong/Documents/datasets/pifubing/optional_image",
-        output_dir="/Users/cuijinlong/Documents/datasets/pifubing/output_dir",
-        train_ratio=0.7,
-        val_ratio=0.15,
-        test_ratio=0.15,
+        source_dir=config.source_image_dir,
+        output_dir=f"{config.output_dir}_basic",
+        train_ratio=config.train_ratio,
+        val_ratio=config.val_ratio,
+        test_ratio=config.test_ratio,
         copy_files=True
     )
 
     # 创建数据集信息文件
-    splitter.create_dataset_info("/Users/cuijinlong/Documents/datasets/pifubing/output_dir", stats)
+    splitter.create_dataset_info(f"{config.output_dir}_basic", stats)
 
     print(f"\n无Excel数据情况处理完成!")
-    print(f"输出目录: /Users/cuijinlong/Documents/datasets/pifubing/output_dir")
+    print(f"输出目录: {config.output_dir}_basic")
 
     # 显示生成的CSV文件内容
-    train_csv = pd.read_csv("/Users/cuijinlong/Documents/datasets/pifubing/output_dir/train_metadata.csv")
-    print(f"\n训练集CSV前5行:")
-    print(train_csv.head())
+    train_csv_path = f"{config.output_dir}_basic/train_metadata.csv"
+    if os.path.exists(train_csv_path):
+        train_csv = pd.read_csv(train_csv_path)
+        print(f"\n训练集CSV前3行:")
+        print(train_csv.head(3))
+        print(f"CSV列数: {len(train_csv.columns)}")
+        print(f"列名: {list(train_csv.columns)}")
 
     return stats
 
 
-def demo_with_excel():
+def demo_with_excel(config):
     """
     演示有Excel数据的情况
+
+    Args:
+        config: 数据集配置对象
     """
     print("\n" + "=" * 50)
     print("演示: 有Excel数据的情况")
@@ -461,27 +389,31 @@ def demo_with_excel():
 
     # 分割数据集（使用Excel）
     stats = splitter.split_dataset(
-        source_dir="/Users/cuijinlong/Documents/datasets/pifubing/optional_image",
-        output_dir="/Users/cuijinlong/Documents/datasets/pifubing/output_dir",
-        train_ratio=0.7,
-        val_ratio=0.15,
-        test_ratio=0.15,
+        source_dir=config.source_image_dir,
+        output_dir=f"{config.output_dir}_multimodal",
+        train_ratio=config.train_ratio,
+        val_ratio=config.val_ratio,
+        test_ratio=config.test_ratio,
         copy_files=True,
-        excel_path="/Users/cuijinlong/Documents/datasets/pifubing/optional_image/medical_data_sample.xlsx",
-        image_col="image_name",
-        label_col="diagnosis"  # 使用Excel中的诊断标签，而不是文件夹名称
+        excel_path=config.excel_path,
+        image_col=config.image_col,
+        label_col=config.label_col  # 使用Excel中的诊断标签，而不是文件夹名称
     )
 
     # 创建数据集信息文件
-    splitter.create_dataset_info("/Users/cuijinlong/Documents/datasets/pifubing/output_dir", stats)
+    splitter.create_dataset_info(f"{config.output_dir}_multimodal", stats)
 
     print(f"\n有Excel数据情况处理完成!")
-    print(f"输出目录: /Users/cuijinlong/Documents/datasets/pifubing/output_dir")
+    print(f"输出目录: {config.output_dir}_multimodal")
 
     # 显示生成的CSV文件内容
-    train_csv = pd.read_csv("/Users/cuijinlong/Documents/datasets/pifubing/output_dir/train_metadata.csv")
-    print(f"\n训练集CSV前5行:")
-    print(train_csv.head())
+    train_csv_path = f"{config.output_dir}_multimodal/train_metadata.csv"
+    if os.path.exists(train_csv_path):
+        train_csv = pd.read_csv(train_csv_path)
+        print(f"\n训练集CSV前3行:")
+        print(train_csv.head(3))
+        print(f"CSV列数: {len(train_csv.columns)}")
+        print(f"列名: {list(train_csv.columns)}")
 
     return stats
 
@@ -490,42 +422,54 @@ def main():
     """
     主函数：完整演示流程
     """
-    print("开始创建模拟医疗数据集演示...")
+    print("开始医疗数据集分割演示...")
 
-    # 步骤1: 创建模拟图像数据（混合JPG和PNG）
-    # image_dir = create_sample_images()
-    # image_dir = Path('/Users/cuijinlong/Documents/datasets/pifubing/optional_image')
-    # 步骤2: 创建模拟Excel数据(完成)
-    # excel_path = create_sample_excel(image_dir)
+    # 初始化配置
+    config = DatasetConfig()
 
-    # 步骤3: 演示无Excel数据的情况(完成)
-    # stats_basic = demo_without_excel()
-    #
-    # # 步骤4: 演示有Excel数据的情况
-    # stats_multimodal = demo_with_excel()
-    #
-    # # 步骤5: 比较两种情况的输出
-    # print("\n" + "=" * 50)
-    # print("结果比较")
-    # print("=" * 50)
-    #
-    # print(f"无Excel数据情况:")
-    # print(f"  - 总图片数: {stats_basic['total_images']}")
-    # basic_csv_cols = len(pd.read_csv('output_dataset_basic/train_metadata.csv').columns)
-    # print(f"  - CSV列数: {basic_csv_cols}")
-    #
-    # print(f"\n有Excel数据情况:")
-    # print(f"  - 总图片数: {stats_multimodal['total_images']}")
-    # multimodal_csv_cols = len(pd.read_csv('output_dataset_multimodal/train_metadata.csv').columns)
-    # print(f"  - CSV列数: {multimodal_csv_cols}")
-    # print(f"  - 包含生化指标: {stats_multimodal['excel_metadata_used']}")
-    #
-    # print(f"\n演示完成!")
-    # print(f"生成的文件:")
-    # print(f"  - 原始图像: sample_medical_images/")
-    # print(f"  - Excel数据: medical_data_sample.xlsx")
-    # print(f"  - 无Excel输出: output_dataset_basic/")
-    # print(f"  - 有Excel输出: output_dataset_multimodal/")
+    print("当前配置:")
+    print(f"  源图像目录: {config.source_image_dir}")
+    print(f"  Excel文件: {config.excel_path}")
+    print(f"  输出目录: {config.output_dir}")
+    print(f"  分割比例: 训练{config.train_ratio}, 验证{config.val_ratio}, 测试{config.test_ratio}")
+
+    # 检查源目录是否存在
+    if not os.path.exists(config.source_image_dir):
+        print(f"错误: 源目录不存在: {config.source_image_dir}")
+        return
+
+    # 演示无Excel数据的情况
+    stats_basic = demo_without_excel(config)
+
+    # 检查Excel文件是否存在
+    if os.path.exists(config.excel_path):
+        # 演示有Excel数据的情况
+        stats_multimodal = demo_with_excel(config)
+
+        # 比较两种情况的输出
+        print("\n" + "=" * 50)
+        print("结果比较")
+        print("=" * 50)
+
+        print(f"无Excel数据情况:")
+        print(f"  - 总图片数: {stats_basic['total_images']}")
+        print(f"  - 使用Excel元数据: {stats_basic['excel_metadata_used']}")
+        print(f"  - 生化指标列数: {stats_basic['bio_columns_count']}")
+
+        print(f"\n有Excel数据情况:")
+        print(f"  - 总图片数: {stats_multimodal['total_images']}")
+        print(f"  - 使用Excel元数据: {stats_multimodal['excel_metadata_used']}")
+        print(f"  - 生化指标列数: {stats_multimodal['bio_columns_count']}")
+
+    else:
+        print(f"\n警告: Excel文件不存在: {config.excel_path}")
+        print("跳过有Excel数据情况的演示")
+
+    print(f"\n演示完成!")
+    print(f"生成的文件:")
+    print(f"  - 无Excel输出: {config.output_dir}_basic/")
+    if os.path.exists(config.excel_path):
+        print(f"  - 有Excel输出: {config.output_dir}_multimodal/")
 
 
 if __name__ == "__main__":
