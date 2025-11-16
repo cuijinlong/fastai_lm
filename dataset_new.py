@@ -364,24 +364,25 @@ def create_sample_excel(image_dir):
     """
     # 收集所有生成的图片文件名（包括JPG和PNG）
     all_images = []
-    for category in ['1', '2', '3']:
+    for category in ['cate1', 'cate2', 'cate3']:
         category_dir = Path(image_dir) / category
 
         # 使用glob同时查找JPG和PNG文件
         for img_file in category_dir.glob("*.*"):
             if img_file.suffix.lower() in ['.jpg', '.jpeg', '.png']:
-                all_images.append(img_file.name)
+                all_images.append(category + '@' + img_file.name)
 
     # 为每张图片生成模拟的生化指标数据
     data = []
     for img_name in all_images:
         # 从文件名提取类别
-        category = img_name.split('_')[0]
+        category = img_name.split('@')[0]
+        img_name = img_name.split('@')[1]
 
         # 生成模拟的生化指标
         row = {
             'image_name': img_name,
-            'diagnosis': f"诊断{category}",  # 与文件夹分类可能不同的标签
+            'diagnosis': f"{category}",  # 与文件夹分类可能不同的标签
             'patient_age': random.randint(20, 80),
             'patient_gender': random.choice(['M', 'F']),
             'wbc_count': round(random.uniform(4.0, 15.0), 1),  # 白细胞计数
@@ -425,8 +426,8 @@ def demo_without_excel():
 
     # 分割数据集（不使用Excel）
     stats = splitter.split_dataset(
-        source_dir="sample_medical_images",
-        output_dir="output_dataset_basic",
+        source_dir="/Users/cuijinlong/Documents/datasets/pifubing/optional_image",
+        output_dir="/Users/cuijinlong/Documents/datasets/pifubing/output_dir",
         train_ratio=0.7,
         val_ratio=0.15,
         test_ratio=0.15,
@@ -434,13 +435,13 @@ def demo_without_excel():
     )
 
     # 创建数据集信息文件
-    splitter.create_dataset_info("output_dataset_basic", stats)
+    splitter.create_dataset_info("/Users/cuijinlong/Documents/datasets/pifubing/output_dir", stats)
 
     print(f"\n无Excel数据情况处理完成!")
-    print(f"输出目录: output_dataset_basic")
+    print(f"输出目录: /Users/cuijinlong/Documents/datasets/pifubing/output_dir")
 
     # 显示生成的CSV文件内容
-    train_csv = pd.read_csv("output_dataset_basic/train_metadata.csv")
+    train_csv = pd.read_csv("/Users/cuijinlong/Documents/datasets/pifubing/output_dir/train_metadata.csv")
     print(f"\n训练集CSV前5行:")
     print(train_csv.head())
 
@@ -460,25 +461,25 @@ def demo_with_excel():
 
     # 分割数据集（使用Excel）
     stats = splitter.split_dataset(
-        source_dir="sample_medical_images",
-        output_dir="output_dataset_multimodal",
+        source_dir="/Users/cuijinlong/Documents/datasets/pifubing/optional_image",
+        output_dir="/Users/cuijinlong/Documents/datasets/pifubing/output_dir",
         train_ratio=0.7,
         val_ratio=0.15,
         test_ratio=0.15,
         copy_files=True,
-        excel_path="medical_data_sample.xlsx",
+        excel_path="/Users/cuijinlong/Documents/datasets/pifubing/optional_image/medical_data_sample.xlsx",
         image_col="image_name",
         label_col="diagnosis"  # 使用Excel中的诊断标签，而不是文件夹名称
     )
 
     # 创建数据集信息文件
-    splitter.create_dataset_info("output_dataset_multimodal", stats)
+    splitter.create_dataset_info("/Users/cuijinlong/Documents/datasets/pifubing/output_dir", stats)
 
     print(f"\n有Excel数据情况处理完成!")
-    print(f"输出目录: output_dataset_multimodal")
+    print(f"输出目录: /Users/cuijinlong/Documents/datasets/pifubing/output_dir")
 
     # 显示生成的CSV文件内容
-    train_csv = pd.read_csv("output_dataset_multimodal/train_metadata.csv")
+    train_csv = pd.read_csv("/Users/cuijinlong/Documents/datasets/pifubing/output_dir/train_metadata.csv")
     print(f"\n训练集CSV前5行:")
     print(train_csv.head())
 
@@ -493,11 +494,11 @@ def main():
 
     # 步骤1: 创建模拟图像数据（混合JPG和PNG）
     # image_dir = create_sample_images()
-    image_dir = Path('/Users/cuijinlong/Documents/datasets/pifubing/optional_image')
-    # 步骤2: 创建模拟Excel数据
-    excel_path = create_sample_excel(image_dir)
+    # image_dir = Path('/Users/cuijinlong/Documents/datasets/pifubing/optional_image')
+    # 步骤2: 创建模拟Excel数据(完成)
+    # excel_path = create_sample_excel(image_dir)
 
-    # # 步骤3: 演示无Excel数据的情况
+    # 步骤3: 演示无Excel数据的情况(完成)
     # stats_basic = demo_without_excel()
     #
     # # 步骤4: 演示有Excel数据的情况
