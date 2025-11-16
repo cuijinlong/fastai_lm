@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
 
-class MedicalDatasetSplitter:
+class DatasetSplitter:
     """
     医疗影像数据集分割工具类
     支持生成包含分类标签和生化指标的多模态数据集
@@ -343,7 +343,7 @@ def demo_without_excel(config):
     print("=" * 50)
 
     # 创建分割器实例
-    splitter = MedicalDatasetSplitter(random_seed=42)
+    splitter = DatasetSplitter(random_seed=42)
 
     # 分割数据集（不使用Excel）
     stats = splitter.split_dataset(
@@ -385,7 +385,7 @@ def demo_with_excel(config):
     print("=" * 50)
 
     # 创建分割器实例
-    splitter = MedicalDatasetSplitter(random_seed=42)
+    splitter = DatasetSplitter(random_seed=42)
 
     # 分割数据集（使用Excel）
     stats = splitter.split_dataset(

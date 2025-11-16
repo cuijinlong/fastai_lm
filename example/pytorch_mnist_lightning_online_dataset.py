@@ -17,7 +17,7 @@ class MNISTLightningModel(pl.LightningModule):
         # 关注点2 损失函数
         self.criterion = nn.CrossEntropyLoss()
         # 数据集方式1：online
-        self.dataset = MNIST('/Users/cuijinlong/Documents/datasets/mnist_online',download=True, transform=transforms.ToTensor())
+        self.dataset = MNIST('/Users/cuijinlong/Documents/dataset/mnist_online',download=True, transform=transforms.ToTensor())
 
     def forward(self, x):
         return self.model(x)

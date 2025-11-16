@@ -478,7 +478,7 @@ def demo_prediction(model: ImageTransformerClassifier, data_module: MNISTImageDa
 
 
 def train_with_custom_config(
-        data_dir: str = '/Users/cuijinlong/Documents/datasets/mnist',
+        data_dir: str = '/Users/cuijinlong/Documents/dataset/mnist',
         batch_size: int = 128,
         max_epochs: int = 10,
         d_model: int = 128,
@@ -554,7 +554,7 @@ if __name__ == "__main__":
     # 创建预测器实例
     # predictor = MNISTPredictor(model=model)
     # predictor = MNISTPredictor(model_path='transformer_image_classifier.pth')
-    # label, confidence, probs = predictor.predict('/Users/cuijinlong/Documents/datasets/mnist/val/6.png')
+    # label, confidence, probs = predictor.predict('/Users/cuijinlong/Documents/dataset/mnist/val/6.png')
     # print(f'预测结果: {label}, 置信度: {confidence:.4f}')
 
     print("\n" + "=" * 50)
