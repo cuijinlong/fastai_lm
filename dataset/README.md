@@ -1,5 +1,5 @@
 第一步：
-1、下载npz并转换PathMNIST数据集
+1、下载 npz 并转换PathMNIST数据集
     |
     -- 下载目录：/Users/cuijinlong/Documents/datasets/pathmnist
 2、模拟Excel数据
