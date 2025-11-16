@@ -38,3 +38,32 @@
          --train_metadata.csv
          --val_metadata.csv
          --dataset_info.txt
+
+
+分割数据集的目录结构(有xlsx)
+/Users/cuijinlong/Documents/datasets/pifubing
+   |
+    --output_dataset_multimodal
+         |
+         -- /test
+             -- /cate1
+             -- /cate2
+             -- /cate3
+             -- ...
+             -- /caten
+         -- /train
+             -- /cate1
+             -- /cate2
+             -- /cate3
+             -- ...
+             -- /caten
+         -- /val
+             -- /cate1
+             -- /cate2
+             -- /cate3
+             -- ...
+             -- /caten
+         --test_metadata.csv
+         --train_metadata.csv
+         --val_metadata.csv
+         --dataset_info.txt
