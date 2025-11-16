@@ -319,7 +319,7 @@ class DatasetConfig:
         self.base_data_dir = "/Users/cuijinlong/Documents/datasets/pifubing"
         self.source_image_dir = f"{self.base_data_dir}/optional_image"
         self.output_dir = f"{self.base_data_dir}/output_dataset"
-        self.excel_path = f"{self.base_data_dir}/optional_image/medical_data_sample.xlsx"
+        self.excel_path = f"{self.base_data_dir}/optional_image/data.xlsx"
 
         # 数据集分割比例
         self.train_ratio = 0.7
